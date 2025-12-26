@@ -1,0 +1,71 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-1.0.x", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(uuid())
+  mobile    String?    @unique
+  email     String?    @unique
+  password  String
+  name      String?
+  role      String     @default("USER") // USER, ADMIN
+  createdAt DateTime   @default(now())
+  orders    Order[]    @relation("CustomerOrders")
+  cartItems CartItem[]
+}
+
+model Product {
+  id          String      @id @default(uuid())
+  title       String
+  description String
+  price       Float
+  images      String      // JSON array of Cloudinary URLs
+  category    String      // Primary category (Book Type)
+  tags        String      // JSON array of taxonomy tags
+  stock       Int         @default(100)
+  isAvailable Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  orderItems  OrderItem[]
+}
+
+model CartItem {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  productId   String
+  quantity    Int      @default(1)
+  customImage String?  // For POD custom uploads
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, productId])
+}
+
+model Order {
+  id          String      @id @default(uuid())
+  userId      String
+  user        User        @relation("CustomerOrders", fields: [userId], references: [id])
+  items       OrderItem[]
+  totalAmount Float
+  shippingFee Float
+  finalAmount Float
+  status      String      @default("PENDING")
+  paymentId   String?
+  createdAt   DateTime    @default(now())
+}
+
+model OrderItem {
+  id          String @id @default(uuid())
+  orderId     String
+  order       Order  @relation(fields: [orderId], references: [id])
+  productId   String
+  product     Product @relation(fields: [productId], references: [id])
+  quantity    Int
+  price       Float
+  customImage String? // POD custom upload snapshot
+}
